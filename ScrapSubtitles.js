@@ -29,7 +29,7 @@ class ScrapSubtitle extends EventEmitter {
 
     const candidates = subtitles.filter(s => s.hi && s.language === 'English')
     this.emit('subtitles-candidates', candidates)
-    if(candidates.length === 0){
+    if (candidates.length === 0) {
       throw new Error('cant find candidates')
     }
 
@@ -38,7 +38,7 @@ class ScrapSubtitle extends EventEmitter {
     this.emit('zip-url', zipUrl)
 
     const fileUnique = this.getUniqueDir()
-    fs.mkdirSync(`/tmp/${fileUnique}`)
+    fs.mkdirSync(`/tmp/${fileUnique}/out`, { recursive: true })
     const zipPath = `/tmp/${fileUnique}/subtitle.zip`
     await this._download(zipUrl, zipPath)
     this.emit('downloaded', zipPath)
@@ -50,20 +50,20 @@ class ScrapSubtitle extends EventEmitter {
 
     return this._readFiles(
       files
-        .filter(f => f.substr(f.length-4, 4)==='.srt')
+        .filter(f => f.substr(f.length - 4, 4) === '.srt')
         .map(f => finalPath + f)
     )
   }
 
-  async _readFiles(files){
+  async _readFiles(files) {
     return Promise.all(files.map(f => {
       return new Promise((resolve, reject) => {
         fs.readFile(f, (err, data) => {
-          if(err) reject(err)
+          if (err) reject(err)
           else {
             const filenamePieces = f.split('/')
             resolve({
-              filename: filenamePieces.pop(), 
+              filename: filenamePieces.pop(),
               content: data.toString()
             })
           }
@@ -72,7 +72,7 @@ class ScrapSubtitle extends EventEmitter {
     }))
   }
 
-  getUniqueDir(){
+  getUniqueDir() {
     return 'scrap_subtitle_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
   }
 
@@ -113,32 +113,32 @@ class ScrapSubtitle extends EventEmitter {
     return subtitles
   }
 
-  async _findZipUrl(subtitlePageUrl){
+  async _findZipUrl(subtitlePageUrl) {
     const resp = await axios.get(subtitlePageUrl)
     const $ = cheerio.load(resp.data)
     const url = $('div.download a').attr('href')
     return 'https://subscene.com' + url
   }
 
-  async _download(url, dest){
+  async _download(url, dest) {
     return new Promise(resolve => {
       var file = fs.createWriteStream(dest);
-      http.get(url, function(response) {
+      http.get(url, function (response) {
         response.pipe(file);
-        file.on('finish', function() {
+        file.on('finish', function () {
           file.close(resolve);
         });
       });
     })
-    
+
   }
 
   async _unzip(fromPath, toPath) {
     return new Promise(resolve => {
-      yauzl.open(fromPath, {lazyEntries: true}, function(err, zipfile) {
+      yauzl.open(fromPath, { lazyEntries: true }, function (err, zipfile) {
         if (err) throw err;
         zipfile.readEntry();
-        zipfile.on("entry", function(entry) {
+        zipfile.on("entry", function (entry) {
           if (/\/$/.test(entry.fileName)) {
             // Directory file names end with '/'.
             // Note that entires for directories themselves are optional.
@@ -146,11 +146,11 @@ class ScrapSubtitle extends EventEmitter {
             zipfile.readEntry();
           } else {
             // file entry
-            if(!/\.srt$/.test(entry.fileName)) return
-            var file = fs.createWriteStream(toPath+entry.fileName);
-            zipfile.openReadStream(entry, function(err, readStream) {
+            if (!/\.srt$/.test(entry.fileName)) return
+            var file = fs.createWriteStream(toPath + entry.fileName);
+            zipfile.openReadStream(entry, function (err, readStream) {
               if (err) throw err;
-              readStream.on("end", function() {
+              readStream.on("end", function () {
                 zipfile.readEntry();
               });
               readStream.pipe(file);
@@ -160,16 +160,20 @@ class ScrapSubtitle extends EventEmitter {
         zipfile.on('end', resolve)
       });
     })
-    
+
   }
 
-  async _getFilesInDir(dir){
+  async _getFilesInDir(dir) {
+    console.log('dir', dir)
+
     return new Promise(resolve => {
       fs.readdir(dir, (err, files) => {
+        if (err) throw err
+        console.log('files', files)
         resolve(files)
       });
     })
-    
+
   }
 
 }
