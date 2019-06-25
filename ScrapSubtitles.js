@@ -22,9 +22,10 @@ class ScrapSubtitle extends EventEmitter {
     }
     this.emit('google-results', googleResults)
 
-    const firstResult = googleResults.data.items[0]
+    const bestResult = this._pickBestGoogleResult(googleResults.data.items, movieName)
+    console.log('picked', bestResult)
 
-    const subtitles = await this._getSubsceneSubtitleList(firstResult.link)
+    const subtitles = await this._getSubsceneSubtitleList(bestResult.link)
     this.emit('subtitles', subtitles)
 
     const candidates = subtitles.filter(s => s.hi && s.language === 'English')
@@ -53,6 +54,17 @@ class ScrapSubtitle extends EventEmitter {
         .filter(f => f.substr(f.length - 4, 4) === '.srt')
         .map(f => finalPath + f)
     )
+  }
+
+  _pickBestGoogleResult(items, movieName){
+    const theOne = items.find(item => item.title.toLowerCase() === `subtitles for ${movieName.toLowerCase()} - subscene`)
+    if(theOne) return theOne
+
+    const subtitlesFor = items.filter(item => item.title.substr(0, 14) === 'Subtitles for ')
+    if(subtitlesFor.length === 0){
+      throw new Error('cant pick google result')
+    }
+    return subtitlesFor[0]
   }
 
   async _readFiles(files) {
