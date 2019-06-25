@@ -48,7 +48,28 @@ class ScrapSubtitle extends EventEmitter {
 
     const files = await this._getFilesInDir(finalPath)
 
-    return files.map(f => finalPath + f)
+    return this._readFiles(
+      files
+        .filter(f => f.substr(f.length-4, 4)==='.srt')
+        .map(f => finalPath + f)
+    )
+  }
+
+  async _readFiles(files){
+    return Promise.all(files.map(f => {
+      return new Promise((resolve, reject) => {
+        fs.readFile(f, (err, data) => {
+          if(err) reject(err)
+          else {
+            const filenamePieces = f.split('/')
+            resolve({
+              filename: filenamePieces.pop(), 
+              content: data.toString()
+            })
+          }
+        })
+      })
+    }))
   }
 
   getUniqueDir(){

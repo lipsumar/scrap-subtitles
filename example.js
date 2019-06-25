@@ -24,8 +24,9 @@ scrapper
     console.log(`Downloaded ${zipPath}`)
   })
 
-scrapper.find('Dr house').then(file => {
-  console.log('=>', file)
+scrapper.find('Dr house').then(srts => {
+  console.log(srts[0])
+  console.log('=>', srts.length)
 }).catch(err => {
   console.log(err.message)
 })
