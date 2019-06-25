@@ -1,1 +1,1 @@
-module.exports = require('./ScrapSubtitle')
+module.exports = require('./ScrapSubtitles')
