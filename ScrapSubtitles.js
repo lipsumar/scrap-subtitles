@@ -36,7 +36,13 @@ class ScrapSubtitle extends EventEmitter {
     this.emit('downloaded', zipPath)
 
     const finalPath = `/tmp/${fileUnique}/out/`
-    await this._unzip(zipPath, finalPath)
+    try{
+      await this._unzip(zipPath, finalPath)
+    }catch(err){
+      console.log('Unzip error', err.message)
+      return null
+    }
+    
 
     const files = await this._getFilesInDir(finalPath)
 
@@ -153,9 +159,9 @@ class ScrapSubtitle extends EventEmitter {
   }
 
   async _unzip(fromPath, toPath) {
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
       yauzl.open(fromPath, { lazyEntries: true }, function (err, zipfile) {
-        if (err) throw err;
+        if (err) return reject(err);
         zipfile.readEntry();
         zipfile.on("entry", function (entry) {
           if (/\/$/.test(entry.fileName)) {
