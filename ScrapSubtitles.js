@@ -16,25 +16,16 @@ class ScrapSubtitle extends EventEmitter {
   }
 
   async find(movieName) {
-    const googleResults = await this._googleCustomSearch(movieName)
-    if (!googleResults) {
-      throw new Error('No google result')
-    }
-    this.emit('google-results', googleResults)
-
-    const bestResult = this._pickBestGoogleResult(googleResults.data.items, movieName)
-    console.log('picked', bestResult)
-
-    const subtitles = await this._getSubsceneSubtitleList(bestResult.link)
-    this.emit('subtitles', subtitles)
-
-    const candidates = subtitles.filter(s => s.hi && s.language === 'English')
+    const candidates = await this.findCandidates(movieName)
     this.emit('subtitles-candidates', candidates)
     if (candidates.length === 0) {
       throw new Error('cant find candidates')
     }
+    return this.fetchCandidate(candidates[0])
+  }
 
-    const subtitlePageUrl = 'https://subscene.com' + candidates[0].url
+  async fetchCandidate(candidate){
+    const subtitlePageUrl = 'https://subscene.com' + candidate.url
     const zipUrl = await this._findZipUrl(subtitlePageUrl)
     this.emit('zip-url', zipUrl)
 
@@ -54,6 +45,22 @@ class ScrapSubtitle extends EventEmitter {
         .filter(f => f.substr(f.length - 4, 4) === '.srt')
         .map(f => finalPath + f)
     )
+  }
+
+  async findCandidates(movieName){
+    const googleResults = await this._googleCustomSearch(movieName)
+    if (!googleResults) {
+      throw new Error('No google result')
+    }
+    this.emit('google-results', googleResults)
+
+    const bestResult = this._pickBestGoogleResult(googleResults.data.items, movieName)
+    console.log('picked', bestResult)
+
+    const subtitles = await this._getSubsceneSubtitleList(bestResult.link)
+    this.emit('subtitles', subtitles)
+
+    return subtitles.filter(s => s.hi && s.language === 'English')
   }
 
   _pickBestGoogleResult(items, movieName){
